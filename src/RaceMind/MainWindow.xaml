@@ -6,12 +6,7 @@
     <Window.Resources>
         <Style TargetType="TextBlock"><Setter Property="Foreground" Value="#F3F7F8"/></Style>
         <Style x:Key="Card" TargetType="Border">
-            <Setter Property="Background" Value="#0D171C"/>
-            <Setter Property="BorderBrush" Value="#1B2B32"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="20"/>
-            <Setter Property="Padding" Value="24"/>
-            <Setter Property="Margin" Value="0,0,18,18"/>
+            <Setter Property="Background" Value="#0D171C"/><Setter Property="BorderBrush" Value="#1B2B32"/><Setter Property="BorderThickness" Value="1"/><Setter Property="CornerRadius" Value="20"/><Setter Property="Padding" Value="24"/><Setter Property="Margin" Value="0,0,18,18"/>
         </Style>
     </Window.Resources>
     <Grid Margin="34">
@@ -20,33 +15,18 @@
             <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                 <Image Source="Assets/racemind-logo.png" Width="82" Height="82" Stretch="Uniform"/>
-                <StackPanel Margin="18,0,0,0" VerticalAlignment="Center">
-                    <TextBlock Text="RACEMIND" FontSize="30" FontWeight="Bold"/>
-                    <TextBlock Text="AI RACE ENGINEER" FontSize="13" Foreground="#7D8E96" Margin="2,5,0,0"/>
-                </StackPanel>
+                <StackPanel Margin="18,0,0,0" VerticalAlignment="Center"><TextBlock Text="RACEMIND" FontSize="30" FontWeight="Bold"/><TextBlock Text="AI RACE ENGINEER" FontSize="13" Foreground="#7D8E96" Margin="2,5,0,0"/></StackPanel>
             </StackPanel>
-            <Border Grid.Column="1" Background="#0B1519" BorderBrush="#2B3B42" BorderThickness="1" CornerRadius="22" Padding="20,11" VerticalAlignment="Center">
-                <StackPanel Orientation="Horizontal"><Ellipse x:Name="StatusDot" Width="10" Height="10" Fill="#65757D" Margin="0,0,10,0"/><TextBlock x:Name="StatusText" Text="IN ATTESA" FontWeight="Bold" FontSize="13"/></StackPanel>
-            </Border>
+            <Border Grid.Column="1" Background="#0B1519" BorderBrush="#2B3B42" BorderThickness="1" CornerRadius="22" Padding="20,11" VerticalAlignment="Center"><StackPanel Orientation="Horizontal"><Ellipse x:Name="StatusDot" Width="10" Height="10" Fill="#65757D" Margin="0,0,10,0"/><TextBlock x:Name="StatusText" Text="IN ATTESA" FontWeight="Bold" FontSize="13"/></StackPanel></Border>
         </Grid>
-        <StackPanel Grid.Row="1">
-            <TextBlock Text="Garage" FontSize="50" FontWeight="Bold"/>
-            <TextBlock x:Name="Subtitle" Text="In attesa di Le Mans Ultimate." FontSize="18" Foreground="#7D8E96" Margin="1,7,0,0"/>
-        </StackPanel>
+        <StackPanel Grid.Row="1"><TextBlock Text="Garage" FontSize="50" FontWeight="Bold"/><TextBlock x:Name="Subtitle" Text="In attesa di Le Mans Ultimate." FontSize="18" Foreground="#7D8E96" Margin="1,7,0,0"/></StackPanel>
         <Grid Grid.Row="2">
-            <Grid.ColumnDefinitions><ColumnDefinition Width="3*"/><ColumnDefinition Width="2*"/></Grid.ColumnDefinitions>
-            <Grid.RowDefinitions><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
-            <Border Style="{StaticResource Card}" Grid.Row="0" Grid.Column="0">
-                <StackPanel><TextBlock Text="SESSIONE" FontSize="12" FontWeight="Bold" Foreground="#7D8E96"/><TextBlock Text="CIRCUITO" FontSize="11" Foreground="#7D8E96" Margin="0,24,0,0"/><TextBlock x:Name="TrackText" Text="—" FontSize="28" FontWeight="Bold"/><TextBlock Text="AUTO" FontSize="11" Foreground="#7D8E96" Margin="0,22,0,0"/><TextBlock x:Name="CarText" Text="—" FontSize="24" FontWeight="Bold"/></StackPanel>
-            </Border>
-            <Border Style="{StaticResource Card}" Grid.Row="0" Grid.Column="1">
-                <StackPanel><TextBlock Text="ACQUISIZIONE" FontSize="12" FontWeight="Bold" Foreground="#7D8E96"/><TextBlock x:Name="CaptureTitle" Text="Non attiva" FontSize="30" FontWeight="Bold" Margin="0,24,0,0"/><TextBlock x:Name="CaptureDetail" Text="Si attiverà automaticamente durante lo stint." FontSize="15" Foreground="#7D8E96" TextWrapping="Wrap" Margin="0,8,0,0"/></StackPanel>
-            </Border>
-            <Border Style="{StaticResource Card}" Grid.Row="1" Grid.Column="0">
-                <StackPanel><TextBlock Text="DATI" FontSize="12" FontWeight="Bold" Foreground="#7D8E96"/><TextBlock Text="Nessun valore viene mostrato finché LMU non fornisce telemetria reale." FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,26,0,0"/><TextBlock Text="Le sessioni vengono archiviate fuori dalla cartella del programma, quindi gli aggiornamenti non cancellano lo storico." FontSize="14" Foreground="#7D8E96" TextWrapping="Wrap" Margin="0,14,0,0"/></StackPanel>
-            </Border>
+            <Grid.ColumnDefinitions><ColumnDefinition Width="3*"/><ColumnDefinition Width="2*"/></Grid.ColumnDefinitions><Grid.RowDefinitions><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+            <Border Style="{StaticResource Card}" Grid.Row="0" Grid.Column="0"><StackPanel><TextBlock Text="SESSIONE" FontSize="12" FontWeight="Bold" Foreground="#7D8E96"/><TextBlock Text="CIRCUITO" FontSize="11" Foreground="#7D8E96" Margin="0,24,0,0"/><TextBlock x:Name="TrackText" Text="—" FontSize="28" FontWeight="Bold"/><TextBlock Text="AUTO" FontSize="11" Foreground="#7D8E96" Margin="0,22,0,0"/><TextBlock x:Name="CarText" Text="—" FontSize="24" FontWeight="Bold"/></StackPanel></Border>
+            <Border Style="{StaticResource Card}" Grid.Row="0" Grid.Column="1"><StackPanel><TextBlock Text="ACQUISIZIONE" FontSize="12" FontWeight="Bold" Foreground="#7D8E96"/><TextBlock x:Name="CaptureTitle" Text="Non attiva" FontSize="30" FontWeight="Bold" Margin="0,24,0,0"/><TextBlock x:Name="CaptureDetail" Text="Si attiverà automaticamente durante lo stint." FontSize="15" Foreground="#7D8E96" TextWrapping="Wrap" Margin="0,8,0,0"/></StackPanel></Border>
+            <Border Style="{StaticResource Card}" Grid.Row="1" Grid.Column="0"><StackPanel><TextBlock Text="DATI" FontSize="12" FontWeight="Bold" Foreground="#7D8E96"/><TextBlock Text="Nessun valore viene mostrato finché LMU non fornisce telemetria reale." FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,26,0,0"/><TextBlock Text="Le sessioni vengono archiviate fuori dalla cartella del programma, quindi gli aggiornamenti non cancellano lo storico." FontSize="14" Foreground="#7D8E96" TextWrapping="Wrap" Margin="0,14,0,0"/></StackPanel></Border>
             <Border Style="{StaticResource Card}" Grid.Row="1" Grid.Column="1">
-                <StackPanel><TextBlock Text="STATO" FontSize="12" FontWeight="Bold" Foreground="#7D8E96"/><TextBlock x:Name="ConnectionText" Text="LMU non rilevato" FontSize="23" FontWeight="Bold" Margin="0,24,0,0"/><TextBlock Text="RaceMind resta silenzioso in pista e torna disponibile ai box." FontSize="14" Foreground="#7D8E96" TextWrapping="Wrap" Margin="0,8,0,0"/><Button x:Name="OpenSessionsButton" Content="Apri cartella sessioni" Width="190" Height="38" HorizontalAlignment="Left" Margin="0,24,0,0" Click="OpenSessions_Click"/></StackPanel>
+                <StackPanel><TextBlock Text="STATO" FontSize="12" FontWeight="Bold" Foreground="#7D8E96"/><TextBlock x:Name="ConnectionText" Text="LMU non rilevato" FontSize="23" FontWeight="Bold" Margin="0,20,0,0"/><TextBlock Text="RaceMind resta silenzioso in pista e torna disponibile ai box." FontSize="14" Foreground="#7D8E96" TextWrapping="Wrap" Margin="0,8,0,0"/><StackPanel Orientation="Horizontal" Margin="0,20,0,0"><Button x:Name="OpenSessionsButton" Content="Apri sessioni" Width="125" Height="38" Click="OpenSessions_Click"/><Button x:Name="CheckUpdatesButton" Content="Verifica aggiornamenti" Width="165" Height="38" Margin="10,0,0,0" Click="CheckUpdates_Click"/></StackPanel><TextBlock x:Name="UpdateStatusText" Text="Aggiornamenti automatici attivi" FontSize="12" Foreground="#7D8E96" Margin="0,10,0,0"/></StackPanel>
             </Border>
         </Grid>
         <Grid Grid.Row="3"><TextBlock Text="RACEMIND" FontSize="11" FontWeight="Bold" Foreground="#42535B"/><TextBlock Text="0.0.1" FontSize="11" Foreground="#42535B" HorizontalAlignment="Right"/></Grid>
