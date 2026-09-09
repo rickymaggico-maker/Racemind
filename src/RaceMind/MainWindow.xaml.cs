@@ -34,15 +34,15 @@ public partial class MainWindow : Window
             if (!_recording) { _recording = true; _sessionId = DateTime.Now.ToString("yyyyMMdd_HHmmss"); _samples = 0; _firstLap = s.Lap; _lastLap = s.Lap; }
             _samples++; _lastLap = Math.Max(_lastLap, s.Lap);
             if (_sessionId is not null) _ = _store.AppendAsync(_sessionId, s);
-            Dispatcher.Invoke(() => { TrackText.Text = BlankIfEmpty(s.Track); CarText.Text = BlankIfEmpty(s.Vehicle); CaptureTitle.Text = "Registrazione attiva"; CaptureDetail.Text = $"Giro {s.Lap} · {_samples:N0} campioni acquisiti"; StatusText.Text = "IN PISTA"; Subtitle.Text = "RaceMind sta registrando lo stint in background."; if (IsVisible) Hide(); });
+            Dispatcher.Invoke(() => { TrackText.Text = BlankIfEmpty(s.Track); DriverText.Text = BlankIfEmpty(s.Driver); CarText.Text = BlankIfEmpty(s.Vehicle); CaptureTitle.Text = "Registrazione attiva"; CaptureDetail.Text = $"Giro {s.Lap} · {_samples:N0} campioni acquisiti"; StatusText.Text = "IN PISTA"; Subtitle.Text = "RaceMind sta registrando lo stint in background."; if (IsVisible) Hide(); });
             return;
         }
         if (_recording)
         {
             _recording = false; if (_sessionId is not null) _ = _store.AppendAsync(_sessionId, s);
-            Dispatcher.Invoke(() => { TrackText.Text = BlankIfEmpty(s.Track); CarText.Text = BlankIfEmpty(s.Vehicle); CaptureTitle.Text = "Stint salvato"; var laps = Math.Max(1, _lastLap - _firstLap + 1); CaptureDetail.Text = $"{laps} giri · {_samples:N0} campioni reali salvati"; StatusText.Text = "BOX"; Subtitle.Text = "Stint acquisito. I dati sono pronti per l'analisi."; ConnectionText.Text = "Telemetria LMU collegata"; Show(); WindowState = WindowState.Normal; Activate(); });
+            Dispatcher.Invoke(() => { TrackText.Text = BlankIfEmpty(s.Track); DriverText.Text = BlankIfEmpty(s.Driver); CarText.Text = BlankIfEmpty(s.Vehicle); CaptureTitle.Text = "Stint salvato"; var laps = Math.Max(1, _lastLap - _firstLap + 1); CaptureDetail.Text = $"{laps} giri · {_samples:N0} campioni reali salvati"; StatusText.Text = s.InGarage ? "GARAGE" : "BOX"; Subtitle.Text = "Stint acquisito. I dati sono pronti per l'analisi."; ConnectionText.Text = "Telemetria LMU collegata"; Show(); WindowState = WindowState.Normal; Activate(); });
         }
-        else Dispatcher.Invoke(() => { TrackText.Text = BlankIfEmpty(s.Track); CarText.Text = BlankIfEmpty(s.Vehicle); StatusText.Text = "BOX"; Subtitle.Text = "RaceMind è pronto per il prossimo stint."; if (!IsVisible) Show(); });
+        else Dispatcher.Invoke(() => { TrackText.Text = BlankIfEmpty(s.Track); DriverText.Text = BlankIfEmpty(s.Driver); CarText.Text = BlankIfEmpty(s.Vehicle); StatusText.Text = s.InGarage ? "GARAGE" : "BOX"; Subtitle.Text = "RaceMind è pronto per il prossimo stint."; if (!IsVisible) Show(); });
     }
 
     private static string BlankIfEmpty(string value) => string.IsNullOrWhiteSpace(value) ? "—" : value;
@@ -50,7 +50,7 @@ public partial class MainWindow : Window
     private void SetConnected(bool connected)
     {
         StatusDot.Fill = new SolidColorBrush((Color)ColorConverter.ConvertFromString(connected ? "#2DD67B" : "#65757D"));
-        if (!connected) { StatusText.Text = "IN ATTESA"; ConnectionText.Text = "LMU non rilevato"; Subtitle.Text = "In attesa di Le Mans Ultimate."; CaptureTitle.Text = "Non attiva"; CaptureDetail.Text = "Si attiverà automaticamente durante lo stint."; if (!IsVisible) Show(); }
+        if (!connected) { StatusText.Text = "IN ATTESA"; ConnectionText.Text = "LMU non rilevato"; Subtitle.Text = "In attesa di Le Mans Ultimate."; CaptureTitle.Text = "Non attiva"; CaptureDetail.Text = "Si attiverà automaticamente durante lo stint."; DriverText.Text = "—"; if (!IsVisible) Show(); }
         else if (!_recording) { StatusText.Text = "LMU COLLEGATO"; ConnectionText.Text = "Telemetria LMU disponibile"; Subtitle.Text = "Connessione stabilita. In attesa dello stint."; }
     }
 
