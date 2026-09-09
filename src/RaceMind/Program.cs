@@ -1,0 +1,15 @@
+using Velopack;
+
+namespace RaceMind;
+
+public static class Program
+{
+    [STAThread]
+    public static void Main()
+    {
+        VelopackApp.Build().Run();
+        var app = new App();
+        app.InitializeComponent();
+        app.Run(new MainWindow());
+    }
+}
