@@ -78,9 +78,27 @@
             </Border>
             <Border Style="{StaticResource Card}" Grid.Row="1" Grid.Column="0">
                 <StackPanel>
-                    <TextBlock Text="DATI" FontSize="12" FontWeight="Bold" Foreground="#7D8E96"/>
-                    <TextBlock Text="Nessun valore viene mostrato finché LMU non fornisce telemetria reale." FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,20,0,0"/>
-                    <TextBlock Text="Le sessioni vengono archiviate fuori dalla cartella del programma, quindi gli aggiornamenti non cancellano lo storico." FontSize="14" Foreground="#7D8E96" TextWrapping="Wrap" Margin="0,12,0,0"/>
+                    <TextBlock Text="DATI STINT" FontSize="12" FontWeight="Bold" Foreground="#7D8E96"/>
+                    <Grid Margin="0,18,0,0">
+                        <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+                        <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,18,14">
+                            <TextBlock Text="VELOCITÀ MAX" FontSize="10" Foreground="#7D8E96"/>
+                            <TextBlock x:Name="MaxSpeedText" Text="—" FontSize="22" FontWeight="Bold" Margin="0,4,0,0"/>
+                        </StackPanel>
+                        <StackPanel Grid.Row="0" Grid.Column="1" Margin="0,0,0,14">
+                            <TextBlock Text="VELOCITÀ MEDIA" FontSize="10" Foreground="#7D8E96"/>
+                            <TextBlock x:Name="AvgSpeedText" Text="—" FontSize="22" FontWeight="Bold" Margin="0,4,0,0"/>
+                        </StackPanel>
+                        <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,18,0">
+                            <TextBlock Text="CARBURANTE USATO" FontSize="10" Foreground="#7D8E96"/>
+                            <TextBlock x:Name="FuelUsedText" Text="—" FontSize="22" FontWeight="Bold" Margin="0,4,0,0"/>
+                        </StackPanel>
+                        <StackPanel Grid.Row="1" Grid.Column="1">
+                            <TextBlock Text="UTILIZZO PEDALI" FontSize="10" Foreground="#7D8E96"/>
+                            <TextBlock x:Name="PedalUsageText" Text="—" FontSize="18" FontWeight="Bold" Margin="0,6,0,0" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Grid>
                 </StackPanel>
             </Border>
             <Border Style="{StaticResource Card}" Grid.Row="1" Grid.Column="1">
