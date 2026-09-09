@@ -24,6 +24,7 @@ public sealed class TelemetryService
     private const int SIsPlayer = 196;
     private const int SInPits = 198;
     private const int SInGarageStall = 507;
+    private const int SSteamId = 536;
 
     private const long OffActiveVehicles = 128_464;
     private const long OffPlayerVehicleIdx = 128_465;
@@ -105,13 +106,14 @@ public sealed class TelemetryService
                     if (id < 0 || before != after)
                         continue;
 
-                    var (driver, scoringInPits, inGarage) = ReadPlayerScoring(view, id);
+                    var (driver, steamId, scoringInPits, inGarage) = ReadPlayerScoring(view, id);
                     var speed = Math.Sqrt(vx * vx + vy * vy + vz * vz) * 3.6;
                     var inPitLane = currentSector < 0 || scoringInPits;
 
                     snapshot = new TelemetrySnapshot(
                         DateTime.UtcNow,
                         driver,
+                        steamId,
                         vehicle,
                         track,
                         Math.Max(0, lap + 1),
@@ -150,9 +152,10 @@ public sealed class TelemetryService
         SetConnected(false);
     }, token);
 
-    private static (string Driver, bool InPits, bool InGarage) ReadPlayerScoring(MemoryMappedViewAccessor view, int telemetryId)
+    private static (string Driver, ulong SteamId, bool InPits, bool InGarage) ReadPlayerScoring(MemoryMappedViewAccessor view, int telemetryId)
     {
         string fallbackDriver = string.Empty;
+        ulong fallbackSteamId = 0;
         bool fallbackInPits = false;
         bool fallbackInGarage = false;
 
@@ -167,16 +170,18 @@ public sealed class TelemetryService
             var isPlayer = view.ReadByte(scoringBase + SIsPlayer) != 0;
             var inPits = view.ReadByte(scoringBase + SInPits) != 0;
             var inGarage = view.ReadByte(scoringBase + SInGarageStall) != 0;
+            var steamId = view.ReadUInt64(scoringBase + SSteamId);
 
             if (isPlayer)
-                return (driver, inPits, inGarage);
+                return (driver, steamId, inPits, inGarage);
 
             fallbackDriver = driver;
+            fallbackSteamId = steamId;
             fallbackInPits = inPits;
             fallbackInGarage = inGarage;
         }
 
-        return (fallbackDriver, fallbackInPits, fallbackInGarage);
+        return (fallbackDriver, fallbackSteamId, fallbackInPits, fallbackInGarage);
     }
 
     private void SetConnected(bool value)
