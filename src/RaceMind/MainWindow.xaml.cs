@@ -14,6 +14,7 @@ public partial class MainWindow : Window
     private readonly TelemetryService _telemetry = new();
     private readonly SessionStore _store = new();
     private readonly UpdateService _updates = new();
+    private readonly DynamicsAnalyzer _dynamics = new();
     private readonly CancellationTokenSource _cts = new();
     private string? _sessionId;
     private string? _activeDriverKey;
@@ -53,6 +54,7 @@ public partial class MainWindow : Window
             _throttleSum += Math.Clamp(s.Throttle, 0, 1);
             _brakeSum += Math.Clamp(s.Brake, 0, 1);
             _fuelLast = s.FuelLitres;
+            _dynamics.Process(s);
 
             if (_sessionId is not null)
                 _ = _store.AppendAsync(_sessionId, s);
@@ -65,7 +67,8 @@ public partial class MainWindow : Window
                 CaptureTitle.Text = "Registrazione attiva";
                 CaptureDetail.Text = $"Giro {s.Lap} · {_samples:N0} campioni acquisiti";
                 StatusText.Text = "IN PISTA";
-                Subtitle.Text = "RaceMind sta registrando lo stint in background.";
+                Subtitle.Text = "RaceMind sta registrando e analizzando lo stint in background.";
+                DynamicsSummaryText.Text = "Analisi dinamica in corso · 4 ruote, accelerazioni e rotazioni";
                 if (IsVisible) Hide();
             });
             return;
@@ -82,6 +85,7 @@ public partial class MainWindow : Window
             var avgThrottle = (_throttleSum / sampleCount) * 100.0;
             var avgBrake = (_brakeSum / sampleCount) * 100.0;
             var fuelUsed = Math.Max(0, _fuelStart - _fuelLast);
+            var dynamics = _dynamics.Finish();
 
             Dispatcher.Invoke(() =>
             {
@@ -95,8 +99,14 @@ public partial class MainWindow : Window
                 AvgSpeedText.Text = $"{avgSpeed:0} km/h";
                 FuelUsedText.Text = $"{fuelUsed:0.00} L";
                 PedalUsageText.Text = $"Gas {avgThrottle:0}% · Freno {avgBrake:0}%";
+                DynamicsSummaryText.Text = dynamics.CornerSamples > 0
+                    ? $"{dynamics.CornerSamples:N0} campioni curva · {dynamics.PeakLateralG:0.00} g laterali\n" +
+                      $"Scorrimento ant. {dynamics.AverageFrontGripFraction:0.000} · post. {dynamics.AverageRearGripFraction:0.000}\n" +
+                      $"Pressione media ant. {dynamics.AverageFrontPressureKpa:0} kPa · post. {dynamics.AverageRearPressureKpa:0} kPa\n" +
+                      $"ABS {dynamics.AbsActiveSamples:N0} campioni · TC {dynamics.TcActiveSamples:N0} campioni"
+                    : "Telemetria dinamica acquisita, ma nessun campione curva ha superato i criteri minimi.";
                 StatusText.Text = s.InGarage ? "GARAGE" : "BOX";
-                Subtitle.Text = "Stint acquisito. I dati reali sono pronti per l'analisi.";
+                Subtitle.Text = "Stint acquisito. RaceMind ha elaborato anche la dinamica vettura.";
                 ConnectionText.Text = "Telemetria LMU collegata";
                 Show();
                 WindowState = WindowState.Normal;
@@ -134,6 +144,7 @@ public partial class MainWindow : Window
         _brakeSum = 0;
         _fuelStart = s.FuelLitres;
         _fuelLast = s.FuelLitres;
+        _dynamics.Reset();
     }
 
     private static string GetDriverKey(TelemetrySnapshot s)
@@ -179,6 +190,7 @@ public partial class MainWindow : Window
             Subtitle.Text = "In attesa di Le Mans Ultimate.";
             CaptureTitle.Text = "Non attiva";
             CaptureDetail.Text = "Si attiverà automaticamente durante lo stint.";
+            DynamicsSummaryText.Text = "In attesa della telemetria dinamica LMU.";
             DriverText.Text = "—";
             if (!IsVisible) Show();
         }
@@ -187,6 +199,7 @@ public partial class MainWindow : Window
             StatusText.Text = "LMU COLLEGATO";
             ConnectionText.Text = "Telemetria LMU disponibile";
             Subtitle.Text = "Connessione stabilita. In attesa dello stint.";
+            DynamicsSummaryText.Text = "Motore dinamico pronto · analisi live al prossimo stint";
         }
     }
 
