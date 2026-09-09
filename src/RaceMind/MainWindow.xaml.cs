@@ -21,6 +21,12 @@ public partial class MainWindow : Window
     private long _samples;
     private int _firstLap;
     private int _lastLap;
+    private double _speedSum;
+    private double _maxSpeed;
+    private double _throttleSum;
+    private double _brakeSum;
+    private double _fuelStart;
+    private double _fuelLast;
 
     public MainWindow()
     {
@@ -42,6 +48,12 @@ public partial class MainWindow : Window
 
             _samples++;
             _lastLap = Math.Max(_lastLap, s.Lap);
+            _speedSum += Math.Max(0, s.SpeedKph);
+            _maxSpeed = Math.Max(_maxSpeed, Math.Max(0, s.SpeedKph));
+            _throttleSum += Math.Clamp(s.Throttle, 0, 1);
+            _brakeSum += Math.Clamp(s.Brake, 0, 1);
+            _fuelLast = s.FuelLitres;
+
             if (_sessionId is not null)
                 _ = _store.AppendAsync(_sessionId, s);
 
@@ -65,6 +77,12 @@ public partial class MainWindow : Window
             if (_sessionId is not null)
                 _ = _store.AppendAsync(_sessionId, s);
 
+            var sampleCount = Math.Max(1, _samples);
+            var avgSpeed = _speedSum / sampleCount;
+            var avgThrottle = (_throttleSum / sampleCount) * 100.0;
+            var avgBrake = (_brakeSum / sampleCount) * 100.0;
+            var fuelUsed = Math.Max(0, _fuelStart - _fuelLast);
+
             Dispatcher.Invoke(() =>
             {
                 TrackText.Text = BlankIfEmpty(s.Track);
@@ -73,8 +91,12 @@ public partial class MainWindow : Window
                 CaptureTitle.Text = "Stint salvato";
                 var laps = Math.Max(1, _lastLap - _firstLap + 1);
                 CaptureDetail.Text = $"{laps} giri · {_samples:N0} campioni reali salvati";
+                MaxSpeedText.Text = $"{_maxSpeed:0} km/h";
+                AvgSpeedText.Text = $"{avgSpeed:0} km/h";
+                FuelUsedText.Text = $"{fuelUsed:0.00} L";
+                PedalUsageText.Text = $"Gas {avgThrottle:0}% · Freno {avgBrake:0}%";
                 StatusText.Text = s.InGarage ? "GARAGE" : "BOX";
-                Subtitle.Text = "Stint acquisito. I dati sono pronti per l'analisi.";
+                Subtitle.Text = "Stint acquisito. I dati reali sono pronti per l'analisi.";
                 ConnectionText.Text = "Telemetria LMU collegata";
                 Show();
                 WindowState = WindowState.Normal;
@@ -106,6 +128,12 @@ public partial class MainWindow : Window
         _samples = 0;
         _firstLap = s.Lap;
         _lastLap = s.Lap;
+        _speedSum = 0;
+        _maxSpeed = 0;
+        _throttleSum = 0;
+        _brakeSum = 0;
+        _fuelStart = s.FuelLitres;
+        _fuelLast = s.FuelLitres;
     }
 
     private static string GetDriverKey(TelemetrySnapshot s)
