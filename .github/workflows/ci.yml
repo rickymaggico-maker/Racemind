@@ -1,0 +1,33 @@
+name: Validate RaceMind
+
+on:
+  pull_request:
+  push:
+    branches:
+      - 'feature/**'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Restore brand assets
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path src/RaceMind/Assets | Out-Null
+          [IO.File]::WriteAllBytes('src/RaceMind/Assets/racemind-logo.png', [Convert]::FromBase64String((Get-Content 'src/RaceMind/AssetsEncoded/racemind-logo.png.b64' -Raw)))
+          $png = [IO.File]::ReadAllBytes('src/RaceMind/Assets/racemind-logo.png')
+          $header = New-Object byte[] 22
+          $header[0]=0; $header[1]=0; $header[2]=1; $header[3]=0; $header[4]=1; $header[5]=0
+          $header[10]=1; $header[12]=32
+          [BitConverter]::GetBytes([int]$png.Length).CopyTo($header,14)
+          [BitConverter]::GetBytes([int]22).CopyTo($header,18)
+          [IO.File]::WriteAllBytes('src/RaceMind/Assets/racemind.ico', $header + $png)
+      - run: dotnet restore src/RaceMind/RaceMind.csproj
+      - run: dotnet build src/RaceMind/RaceMind.csproj -c Release --no-restore
