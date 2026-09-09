@@ -129,7 +129,12 @@ public partial class MainWindow : Window
 
     private static string GetDisplayVersion()
     {
-        var version = Assembly.GetExecutingAssembly().GetName().Version;
+        var assembly = Assembly.GetExecutingAssembly();
+        var informational = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+        if (!string.IsNullOrWhiteSpace(informational))
+            return informational.Split('+')[0];
+
+        var version = assembly.GetName().Version;
         if (version is null) return "—";
         return $"{version.Major}.{version.Minor}.{version.Build}";
     }
