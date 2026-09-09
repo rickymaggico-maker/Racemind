@@ -31,6 +31,7 @@ public sealed record PhaseHandlingSummary(
     int UndersteerEvents,
     int OversteerEvents,
     int NeutralEvents,
+    CornerSpeedBand DominantSpeedBand,
     double AverageFrontSlip,
     double AverageRearSlip,
     double AverageFrontLoadN,
