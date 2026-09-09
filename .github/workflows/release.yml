@@ -1,0 +1,59 @@
+name: Build and Release RaceMind
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows-release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore official RaceMind brand assets
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path src/RaceMind/Assets | Out-Null
+          [IO.File]::WriteAllBytes('src/RaceMind/Assets/racemind-logo.png', [Convert]::FromBase64String((Get-Content 'src/RaceMind/AssetsEncoded/racemind-logo.png.b64' -Raw)))
+          $png = [IO.File]::ReadAllBytes('src/RaceMind/Assets/racemind-logo.png')
+          $header = New-Object byte[] 22
+          $header[0]=0; $header[1]=0; $header[2]=1; $header[3]=0; $header[4]=1; $header[5]=0
+          $header[6]=0; $header[7]=0; $header[8]=0; $header[9]=0; $header[10]=1; $header[11]=0; $header[12]=32; $header[13]=0
+          [BitConverter]::GetBytes([int]$png.Length).CopyTo($header,14)
+          [BitConverter]::GetBytes([int]22).CopyTo($header,18)
+          [IO.File]::WriteAllBytes('src/RaceMind/Assets/racemind.ico', $header + $png)
+
+      - name: Restore
+        run: dotnet restore src/RaceMind/RaceMind.csproj
+
+      - name: Publish Windows x64
+        run: dotnet publish src/RaceMind/RaceMind.csproj -c Release -r win-x64 --self-contained true -o publish
+
+      - name: Install Velopack CLI
+        run: dotnet tool install -g vpk
+
+      - name: Package installer
+        shell: pwsh
+        run: |
+          $version = if ('${{ github.ref_name }}' -like 'v*') { '${{ github.ref_name }}'.TrimStart('v') } else { '0.0.1' }
+          vpk pack --packId RaceMind --packVersion $version --packDir publish --mainExe RaceMind.exe --icon src/RaceMind/Assets/racemind.ico --packTitle RaceMind
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: RaceMind-Windows
+          path: Releases/**
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        run: |
+          vpk upload github --repoUrl https://github.com/rickymaggico-maker/Racemind --publish --releaseName "RaceMind ${{ github.ref_name }}" --tag "${{ github.ref_name }}" --token "${{ secrets.GITHUB_TOKEN }}"
