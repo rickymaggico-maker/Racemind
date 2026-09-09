@@ -30,27 +30,6 @@
                 </Setter.Value>
             </Setter>
         </Style>
-        <Style x:Key="RaceButtonAccent" TargetType="Button" BasedOn="{StaticResource RaceButton}">
-            <Setter Property="Background" Value="#5A171B"/>
-            <Setter Property="BorderBrush" Value="#A62A31"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="Chrome" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="11">
-                            <Grid>
-                                <Border Width="3" Background="#E34B52" HorizontalAlignment="Left" CornerRadius="11,0,0,11"/>
-                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                            </Grid>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Chrome" Property="Background" Value="#721F25"/><Setter TargetName="Chrome" Property="BorderBrush" Value="#D14249"/></Trigger>
-                            <Trigger Property="IsPressed" Value="True"><Setter TargetName="Chrome" Property="Background" Value="#461014"/></Trigger>
-                            <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Chrome" Property="Opacity" Value="0.45"/></Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
     </Window.Resources>
     <Grid Margin="34">
         <Grid.RowDefinitions>
@@ -115,7 +94,7 @@
         <Grid Grid.Row="3" Margin="0,4,18,0">
             <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
             <Button x:Name="OpenSessionsButton" Grid.Column="0" Style="{StaticResource RaceButton}" Content="APRI SESSIONI" Width="145" Height="42" VerticalAlignment="Center" Click="OpenSessions_Click"/>
-            <Button x:Name="CheckUpdatesButton" Grid.Column="1" Style="{StaticResource RaceButtonAccent}" Content="VERIFICA AGGIORNAMENTI" Width="205" Height="42" Margin="10,0,0,0" VerticalAlignment="Center" Click="CheckUpdates_Click"/>
+            <Button x:Name="CheckUpdatesButton" Grid.Column="1" Style="{StaticResource RaceButton}" Content="VERIFICA AGGIORNAMENTI" Width="205" Height="42" Margin="10,0,0,0" VerticalAlignment="Center" Click="CheckUpdates_Click"/>
             <TextBlock x:Name="UpdateStatusText" Grid.Column="2" Text="Aggiornamenti automatici attivi" FontSize="12" Foreground="#65757D" Margin="16,0,0,0" VerticalAlignment="Center"/>
             <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
                 <TextBlock Text="RACEMIND" FontSize="11" FontWeight="Bold" Foreground="#42535B" Margin="0,0,12,0"/>
