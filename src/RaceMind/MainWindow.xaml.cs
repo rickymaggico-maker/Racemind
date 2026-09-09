@@ -68,7 +68,7 @@ public partial class MainWindow : Window
                 CaptureDetail.Text = $"Giro {s.Lap} · {_samples:N0} campioni acquisiti";
                 StatusText.Text = "IN PISTA";
                 Subtitle.Text = "RaceMind sta registrando e analizzando lo stint in background.";
-                DynamicsSummaryText.Text = "Analisi dinamica in corso · 4 ruote, accelerazioni e rotazioni";
+                DynamicsSummaryText.Text = "Diagnosi handling in corso · sottosterzo / sovrasterzo / neutro";
                 if (IsVisible) Hide();
             });
             return;
@@ -100,13 +100,13 @@ public partial class MainWindow : Window
                 FuelUsedText.Text = $"{fuelUsed:0.00} L";
                 PedalUsageText.Text = $"Gas {avgThrottle:0}% · Freno {avgBrake:0}%";
                 DynamicsSummaryText.Text = dynamics.CornerSamples > 0
-                    ? $"{dynamics.CornerSamples:N0} campioni curva · {dynamics.PeakLateralG:0.00} g laterali\n" +
-                      $"Scorrimento ant. {dynamics.AverageFrontGripFraction:0.000} · post. {dynamics.AverageRearGripFraction:0.000}\n" +
-                      $"Pressione media ant. {dynamics.AverageFrontPressureKpa:0} kPa · post. {dynamics.AverageRearPressureKpa:0} kPa\n" +
-                      $"ABS {dynamics.AbsActiveSamples:N0} campioni · TC {dynamics.TcActiveSamples:N0} campioni"
-                    : "Telemetria dinamica acquisita, ma nessun campione curva ha superato i criteri minimi.";
+                    ? $"{dynamics.HandlingBalance.ToUpperInvariant()} · confidenza {dynamics.HandlingConfidencePercent}%\n" +
+                      $"Sottosterzo {dynamics.UndersteerSamples:N0} · Sovrasterzo {dynamics.OversteerSamples:N0} · Neutro {dynamics.NeutralSamples:N0} campioni\n" +
+                      $"Slip medio ant. {dynamics.AverageFrontSlip:0.000} m/s · post. {dynamics.AverageRearSlip:0.000} m/s\n" +
+                      $"{dynamics.CornerSamples:N0} campioni curva · picco {dynamics.PeakLateralG:0.00} g"
+                    : "Analisi handling insufficiente: nessun campione curva valido.";
                 StatusText.Text = s.InGarage ? "GARAGE" : "BOX";
-                Subtitle.Text = "Stint acquisito. RaceMind ha elaborato anche la dinamica vettura.";
+                Subtitle.Text = "Stint acquisito. RaceMind ha elaborato il bilanciamento vettura.";
                 ConnectionText.Text = "Telemetria LMU collegata";
                 Show();
                 WindowState = WindowState.Normal;
@@ -199,7 +199,7 @@ public partial class MainWindow : Window
             StatusText.Text = "LMU COLLEGATO";
             ConnectionText.Text = "Telemetria LMU disponibile";
             Subtitle.Text = "Connessione stabilita. In attesa dello stint.";
-            DynamicsSummaryText.Text = "Motore dinamico pronto · analisi live al prossimo stint";
+            DynamicsSummaryText.Text = "Motore handling pronto · analisi live al prossimo stint";
         }
     }
 
