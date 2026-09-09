@@ -14,7 +14,7 @@ public partial class MainWindow : Window
     private readonly TelemetryService _telemetry = new();
     private readonly SessionStore _store = new();
     private readonly UpdateService _updates = new();
-    private readonly DynamicsAnalyzer _dynamics = new();
+    private readonly RaceEngineerEngine _raceEngineer = new();
     private readonly CancellationTokenSource _cts = new();
     private string? _sessionId;
     private string? _activeDriverKey;
@@ -54,7 +54,7 @@ public partial class MainWindow : Window
             _throttleSum += Math.Clamp(s.Throttle, 0, 1);
             _brakeSum += Math.Clamp(s.Brake, 0, 1);
             _fuelLast = s.FuelLitres;
-            _dynamics.Process(s);
+            _raceEngineer.Process(s);
 
             if (_sessionId is not null)
                 _ = _store.AppendAsync(_sessionId, s);
@@ -68,7 +68,7 @@ public partial class MainWindow : Window
                 CaptureDetail.Text = $"Giro {s.Lap} · {_samples:N0} campioni acquisiti";
                 StatusText.Text = "IN PISTA";
                 Subtitle.Text = "RaceMind sta registrando e analizzando lo stint in background.";
-                DynamicsSummaryText.Text = "Diagnosi handling in corso · sottosterzo / sovrasterzo / neutro";
+                DynamicsSummaryText.Text = "Race Engineer attivo · curve, fasi, gomme, degrado e profilo pilota";
                 if (IsVisible) Hide();
             });
             return;
@@ -85,28 +85,23 @@ public partial class MainWindow : Window
             var avgThrottle = (_throttleSum / sampleCount) * 100.0;
             var avgBrake = (_brakeSum / sampleCount) * 100.0;
             var fuelUsed = Math.Max(0, _fuelStart - _fuelLast);
-            var dynamics = _dynamics.Finish();
+            var report = _raceEngineer.Finish();
 
             Dispatcher.Invoke(() =>
             {
                 TrackText.Text = BlankIfEmpty(s.Track);
                 DriverText.Text = BlankIfEmpty(s.Driver);
                 CarText.Text = BlankIfEmpty(s.Vehicle);
-                CaptureTitle.Text = "Stint salvato";
+                CaptureTitle.Text = "Stint analizzato";
                 var laps = Math.Max(1, _lastLap - _firstLap + 1);
-                CaptureDetail.Text = $"{laps} giri · {_samples:N0} campioni reali salvati";
+                CaptureDetail.Text = $"{laps} giri · {_samples:N0} campioni reali elaborati";
                 MaxSpeedText.Text = $"{_maxSpeed:0} km/h";
                 AvgSpeedText.Text = $"{avgSpeed:0} km/h";
                 FuelUsedText.Text = $"{fuelUsed:0.00} L";
                 PedalUsageText.Text = $"Gas {avgThrottle:0}% · Freno {avgBrake:0}%";
-                DynamicsSummaryText.Text = dynamics.CornerSamples > 0
-                    ? $"{dynamics.HandlingBalance.ToUpperInvariant()} · confidenza {dynamics.HandlingConfidencePercent}%\n" +
-                      $"Sottosterzo {dynamics.UndersteerSamples:N0} · Sovrasterzo {dynamics.OversteerSamples:N0} · Neutro {dynamics.NeutralSamples:N0} campioni\n" +
-                      $"Slip medio ant. {dynamics.AverageFrontSlip:0.000} m/s · post. {dynamics.AverageRearSlip:0.000} m/s\n" +
-                      $"{dynamics.CornerSamples:N0} campioni curva · picco {dynamics.PeakLateralG:0.00} g"
-                    : "Analisi handling insufficiente: nessun campione curva valido.";
+                DynamicsSummaryText.Text = FormatRaceEngineerReport(report);
                 StatusText.Text = s.InGarage ? "GARAGE" : "BOX";
-                Subtitle.Text = "Stint acquisito. RaceMind ha elaborato il bilanciamento vettura.";
+                Subtitle.Text = report.Headline;
                 ConnectionText.Text = "Telemetria LMU collegata";
                 Show();
                 WindowState = WindowState.Normal;
@@ -144,7 +139,52 @@ public partial class MainWindow : Window
         _brakeSum = 0;
         _fuelStart = s.FuelLitres;
         _fuelLast = s.FuelLitres;
-        _dynamics.Reset();
+        _raceEngineer.Reset(s);
+    }
+
+    private static string FormatRaceEngineerReport(RaceEngineerReport r)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine(r.Headline.ToUpperInvariant());
+        sb.AppendLine($"Ingresso: {PhaseText(r.Entry)} · Centro: {PhaseText(r.Mid)} · Uscita: {PhaseText(r.Exit)}");
+        sb.AppendLine($"Curve analizzate {r.CornerEvents} · consistenza {r.Laps.ConsistencyPercent:0}% · best {(r.Laps.BestLapSeconds > 0 ? FormatLap(r.Laps.BestLapSeconds) : "—")}");
+        sb.AppendLine($"Gomme kPa FL {r.Tires.FrontLeftPressureKpa:0} FR {r.Tires.FrontRightPressureKpa:0} · RL {r.Tires.RearLeftPressureKpa:0} RR {r.Tires.RearRightPressureKpa:0}");
+        sb.AppendLine($"Picchi °C FL {r.Tires.FrontLeftPeakTempC:0} FR {r.Tires.FrontRightPeakTempC:0} · RL {r.Tires.RearLeftPeakTempC:0} RR {r.Tires.RearRightPeakTempC:0}");
+        sb.AppendLine($"Degrado: {r.Degradation.HandlingTrend} · passo {r.Degradation.PaceChangeSeconds:+0.00;-0.00;0.00}s");
+        sb.AppendLine($"Pilota: {r.DriverComparison.PaceComparison} · {r.DriverComparison.BalanceComparison}");
+        sb.AppendLine(r.EvidenceSummary);
+
+        if (r.Recommendations.Count > 0)
+        {
+            var top = r.Recommendations[0];
+            sb.Append($"SETUP → {top.Change} · confidenza {top.ConfidencePercent}%");
+        }
+        else
+        {
+            sb.Append("SETUP → nessuna modifica proposta: evidenza insufficiente o bilanciamento non dominante.");
+        }
+
+        return sb.ToString();
+    }
+
+    private static string PhaseText(PhaseHandlingSummary p)
+    {
+        var label = p.State switch
+        {
+            HandlingState.Understeer => "sottosterzo",
+            HandlingState.Oversteer => "sovrasterzo",
+            HandlingState.Neutral => "neutro",
+            HandlingState.Mixed => "misto",
+            _ => "insufficiente"
+        };
+        return p.ConfidencePercent > 0 ? $"{label} {p.ConfidencePercent}%" : label;
+    }
+
+    private static string FormatLap(double seconds)
+    {
+        var minutes = (int)(seconds / 60);
+        var remainder = seconds - minutes * 60;
+        return $"{minutes}:{remainder:00.000}";
     }
 
     private static string GetDriverKey(TelemetrySnapshot s)
@@ -199,7 +239,7 @@ public partial class MainWindow : Window
             StatusText.Text = "LMU COLLEGATO";
             ConnectionText.Text = "Telemetria LMU disponibile";
             Subtitle.Text = "Connessione stabilita. In attesa dello stint.";
-            DynamicsSummaryText.Text = "Motore handling pronto · analisi live al prossimo stint";
+            DynamicsSummaryText.Text = "Race Engineer pronto · analisi live al prossimo stint";
         }
     }
 
