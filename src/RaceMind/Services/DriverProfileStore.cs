@@ -1,3 +1,4 @@
+using System.IO;
 using System.Text.Json;
 using RaceMind.Models;
 
@@ -83,7 +84,6 @@ public sealed class DriverProfileStore
         }
         catch
         {
-            // A damaged profile must never interrupt telemetry analysis.
         }
         return new StoredDriver(driver, steamId, new List<StoredStint>());
     }
@@ -98,7 +98,6 @@ public sealed class DriverProfileStore
         }
         catch
         {
-            // Persistence is secondary to live analysis.
         }
     }
 
