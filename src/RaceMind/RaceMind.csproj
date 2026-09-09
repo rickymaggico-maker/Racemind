@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AssemblyName>RaceMind</AssemblyName>
+    <RootNamespace>RaceMind</RootNamespace>
+    <Version>0.0.1</Version>
+    <ApplicationIcon>Assets\racemind.ico</ApplicationIcon>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Velopack" Version="0.0.1298" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Assets\racemind-logo.png" />
+    <Resource Include="Assets\racemind.ico" />
+  </ItemGroup>
+</Project>
