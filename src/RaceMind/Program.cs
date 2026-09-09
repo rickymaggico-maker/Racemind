@@ -1,3 +1,4 @@
+using System.Windows;
 using Velopack;
 
 namespace RaceMind;
@@ -8,8 +9,7 @@ public static class Program
     public static void Main()
     {
         VelopackApp.Build().Run();
-        var app = new App();
-        app.InitializeComponent();
+        var app = new Application();
         app.Run(new MainWindow());
     }
 }
