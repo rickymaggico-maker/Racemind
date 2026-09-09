@@ -18,10 +18,9 @@ public sealed class RaceEngineerEngine
     private int _nonCornerSamples;
     private int _currentLap;
     private DateTime _lapStartedUtc;
-    private DateTime _lastTimestamp;
     private TelemetrySnapshot? _last;
-    private TireState _tires = new();
-    private TireState _startTires = new();
+    private TireState _tires = TireState.Empty;
+    private TireState _startTires = TireState.Empty;
     private long _absSamples;
     private long _tcSamples;
 
@@ -33,7 +32,6 @@ public sealed class RaceEngineerEngine
         _nonCornerSamples = 0;
         _currentLap = first.Lap;
         _lapStartedUtc = first.Timestamp;
-        _lastTimestamp = first.Timestamp;
         _last = first;
         _tires = TireState.From(first);
         _startTires = _tires;
@@ -44,7 +42,6 @@ public sealed class RaceEngineerEngine
     public void Process(TelemetrySnapshot s)
     {
         _last = s;
-        _lastTimestamp = s.Timestamp;
         _tires = _tires.Update(s);
         if (s.AbsActive) _absSamples++;
         if (s.TcActive) _tcSamples++;
@@ -394,6 +391,8 @@ public sealed class RaceEngineerEngine
         double FlPeak, double FrPeak, double RlPeak, double RrPeak,
         double FlWear, double FrWear, double RlWear, double RrWear)
     {
+        public static TireState Empty { get; } = new(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+
         public static TireState From(TelemetrySnapshot s) => new(
             s.FrontLeft.PressureKpa, s.FrontRight.PressureKpa, s.RearLeft.PressureKpa, s.RearRight.PressureKpa,
             Peak(s.FrontLeft), Peak(s.FrontRight), Peak(s.RearLeft), Peak(s.RearRight),
