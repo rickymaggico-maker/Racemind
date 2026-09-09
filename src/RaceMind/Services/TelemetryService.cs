@@ -6,21 +6,32 @@ namespace RaceMind.Services;
 
 /// <summary>
 /// Reads LMU's native LMU_Data shared-memory mapping. It never emits demo data.
-/// The offsets below follow LMU's SharedMemoryInterface layout (pack=4):
-/// 332 bytes generic + 1300 bytes paths + 126832 bytes scoring, then telemetry.
-/// Each player telemetry record is 1888 bytes and LMU exposes 104 slots.
+/// Layout follows LMU's built-in SharedMemoryInterface (pack=4).
 /// </summary>
 public sealed class TelemetryService
 {
     private const string MapName = "LMU_Data";
     private const long MappingSize = 324_820;
+
+    // SharedMemoryObjectOut: generic (332) + paths (1300) + scoring (126832) + telemetry.
+    private const long OffScoring = 1_632;
+    private const int ScoringInfoSize = 548;
+    private const int ScoringStreamSizeField = 12;
+    private const long OffVehicleScoring = OffScoring + ScoringInfoSize + ScoringStreamSizeField;
+    private const int VehicleScoringSize = 584;
+    private const int SId = 0;
+    private const int SDriverName = 4;
+    private const int SIsPlayer = 196;
+    private const int SInPits = 198;
+    private const int SInGarageStall = 507;
+
     private const long OffActiveVehicles = 128_464;
     private const long OffPlayerVehicleIdx = 128_465;
     private const long OffPlayerHasVehicle = 128_466;
     private const long OffTelemetryInfo = 128_468;
     private const int VehicleTelemetrySize = 1_888;
 
-    // rF2VehicleTelemetry offsets, pack=4.
+    // TelemInfoV01 offsets, pack=4.
     private const int VId = 0;
     private const int VElapsed = 12;
     private const int VLapNumber = 20;
@@ -71,8 +82,8 @@ public sealed class TelemetryService
                 var playerBase = OffTelemetryInfo + idx * VehicleTelemetrySize;
                 TelemetrySnapshot? snapshot = null;
 
-                // LMU_Data has no begin/end version pair. Re-read the 100 Hz
-                // elapsed-time witness and only accept a stable record.
+                // LMU_Data has no begin/end version pair. Re-read the elapsed-time witness
+                // and only accept a stable player telemetry record.
                 for (var attempt = 0; attempt < 3 && snapshot is null; attempt++)
                 {
                     var before = view.ReadDouble(playerBase + VElapsed);
@@ -94,11 +105,13 @@ public sealed class TelemetryService
                     if (id < 0 || before != after)
                         continue;
 
+                    var (driver, scoringInPits, inGarage) = ReadPlayerScoring(view, id);
                     var speed = Math.Sqrt(vx * vx + vy * vy + vz * vz) * 3.6;
-                    var inPitLane = currentSector < 0; // sign bit is LMU/rF2 pit-lane flag
+                    var inPitLane = currentSector < 0 || scoringInPits;
 
                     snapshot = new TelemetrySnapshot(
                         DateTime.UtcNow,
+                        driver,
                         vehicle,
                         track,
                         Math.Max(0, lap + 1),
@@ -108,14 +121,14 @@ public sealed class TelemetryService
                         steering,
                         gear,
                         fuel,
-                        InGarage: false,
+                        InGarage: inGarage,
                         InPitLane: inPitLane);
                 }
 
                 if (snapshot is not null)
                     SnapshotReceived?.Invoke(this, snapshot);
 
-                await Task.Delay(20, token); // UI/storage sampling target: ~50 Hz
+                await Task.Delay(20, token);
             }
             catch (OperationCanceledException) when (token.IsCancellationRequested)
             {
@@ -136,6 +149,35 @@ public sealed class TelemetryService
         map?.Dispose();
         SetConnected(false);
     }, token);
+
+    private static (string Driver, bool InPits, bool InGarage) ReadPlayerScoring(MemoryMappedViewAccessor view, int telemetryId)
+    {
+        string fallbackDriver = string.Empty;
+        bool fallbackInPits = false;
+        bool fallbackInGarage = false;
+
+        for (var i = 0; i < 104; i++)
+        {
+            var scoringBase = OffVehicleScoring + i * VehicleScoringSize;
+            var scoringId = view.ReadInt32(scoringBase + SId);
+            if (scoringId != telemetryId)
+                continue;
+
+            var driver = ReadFixedUtf8(view, scoringBase + SDriverName, 32);
+            var isPlayer = view.ReadByte(scoringBase + SIsPlayer) != 0;
+            var inPits = view.ReadByte(scoringBase + SInPits) != 0;
+            var inGarage = view.ReadByte(scoringBase + SInGarageStall) != 0;
+
+            if (isPlayer)
+                return (driver, inPits, inGarage);
+
+            fallbackDriver = driver;
+            fallbackInPits = inPits;
+            fallbackInGarage = inGarage;
+        }
+
+        return (fallbackDriver, fallbackInPits, fallbackInGarage);
+    }
 
     private void SetConnected(bool value)
     {
