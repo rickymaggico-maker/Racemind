@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using System.Reflection;
+using System.Text;
 using System.Windows;
 using System.Windows.Media;
 using RaceMind.Models;
@@ -13,6 +15,7 @@ public partial class MainWindow : Window
     private readonly UpdateService _updates = new();
     private readonly CancellationTokenSource _cts = new();
     private string? _sessionId;
+    private string? _activeDriverKey;
     private bool _recording;
     private long _samples;
     private int _firstLap;
@@ -21,6 +24,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        VersionText.Text = GetDisplayVersion();
         _telemetry.ConnectionChanged += (_, connected) => Dispatcher.Invoke(() => SetConnected(connected));
         _telemetry.SnapshotReceived += OnSnapshot;
         Loaded += (_, _) => { _ = _telemetry.StartAsync(_cts.Token); _ = _updates.CheckAndApplyAsync(); };
@@ -31,18 +35,102 @@ public partial class MainWindow : Window
     {
         if (!s.InPitLane)
         {
-            if (!_recording) { _recording = true; _sessionId = DateTime.Now.ToString("yyyyMMdd_HHmmss"); _samples = 0; _firstLap = s.Lap; _lastLap = s.Lap; }
-            _samples++; _lastLap = Math.Max(_lastLap, s.Lap);
-            if (_sessionId is not null) _ = _store.AppendAsync(_sessionId, s);
-            Dispatcher.Invoke(() => { TrackText.Text = BlankIfEmpty(s.Track); DriverText.Text = BlankIfEmpty(s.Driver); CarText.Text = BlankIfEmpty(s.Vehicle); CaptureTitle.Text = "Registrazione attiva"; CaptureDetail.Text = $"Giro {s.Lap} · {_samples:N0} campioni acquisiti"; StatusText.Text = "IN PISTA"; Subtitle.Text = "RaceMind sta registrando lo stint in background."; if (IsVisible) Hide(); });
+            var driverKey = GetDriverKey(s);
+            if (!_recording || !string.Equals(_activeDriverKey, driverKey, StringComparison.Ordinal))
+                StartStint(s, driverKey);
+
+            _samples++;
+            _lastLap = Math.Max(_lastLap, s.Lap);
+            if (_sessionId is not null)
+                _ = _store.AppendAsync(_sessionId, s);
+
+            Dispatcher.Invoke(() =>
+            {
+                TrackText.Text = BlankIfEmpty(s.Track);
+                DriverText.Text = BlankIfEmpty(s.Driver);
+                CarText.Text = BlankIfEmpty(s.Vehicle);
+                CaptureTitle.Text = "Registrazione attiva";
+                CaptureDetail.Text = $"Giro {s.Lap} · {_samples:N0} campioni acquisiti";
+                StatusText.Text = "IN PISTA";
+                Subtitle.Text = "RaceMind sta registrando lo stint in background.";
+                if (IsVisible) Hide();
+            });
             return;
         }
+
         if (_recording)
         {
-            _recording = false; if (_sessionId is not null) _ = _store.AppendAsync(_sessionId, s);
-            Dispatcher.Invoke(() => { TrackText.Text = BlankIfEmpty(s.Track); DriverText.Text = BlankIfEmpty(s.Driver); CarText.Text = BlankIfEmpty(s.Vehicle); CaptureTitle.Text = "Stint salvato"; var laps = Math.Max(1, _lastLap - _firstLap + 1); CaptureDetail.Text = $"{laps} giri · {_samples:N0} campioni reali salvati"; StatusText.Text = s.InGarage ? "GARAGE" : "BOX"; Subtitle.Text = "Stint acquisito. I dati sono pronti per l'analisi."; ConnectionText.Text = "Telemetria LMU collegata"; Show(); WindowState = WindowState.Normal; Activate(); });
+            _recording = false;
+            if (_sessionId is not null)
+                _ = _store.AppendAsync(_sessionId, s);
+
+            Dispatcher.Invoke(() =>
+            {
+                TrackText.Text = BlankIfEmpty(s.Track);
+                DriverText.Text = BlankIfEmpty(s.Driver);
+                CarText.Text = BlankIfEmpty(s.Vehicle);
+                CaptureTitle.Text = "Stint salvato";
+                var laps = Math.Max(1, _lastLap - _firstLap + 1);
+                CaptureDetail.Text = $"{laps} giri · {_samples:N0} campioni reali salvati";
+                StatusText.Text = s.InGarage ? "GARAGE" : "BOX";
+                Subtitle.Text = "Stint acquisito. I dati sono pronti per l'analisi.";
+                ConnectionText.Text = "Telemetria LMU collegata";
+                Show();
+                WindowState = WindowState.Normal;
+                Activate();
+            });
+
+            _sessionId = null;
+            _activeDriverKey = null;
         }
-        else Dispatcher.Invoke(() => { TrackText.Text = BlankIfEmpty(s.Track); DriverText.Text = BlankIfEmpty(s.Driver); CarText.Text = BlankIfEmpty(s.Vehicle); StatusText.Text = s.InGarage ? "GARAGE" : "BOX"; Subtitle.Text = "RaceMind è pronto per il prossimo stint."; if (!IsVisible) Show(); });
+        else
+        {
+            Dispatcher.Invoke(() =>
+            {
+                TrackText.Text = BlankIfEmpty(s.Track);
+                DriverText.Text = BlankIfEmpty(s.Driver);
+                CarText.Text = BlankIfEmpty(s.Vehicle);
+                StatusText.Text = s.InGarage ? "GARAGE" : "BOX";
+                Subtitle.Text = "RaceMind è pronto per il prossimo stint.";
+                if (!IsVisible) Show();
+            });
+        }
+    }
+
+    private void StartStint(TelemetrySnapshot s, string driverKey)
+    {
+        _recording = true;
+        _activeDriverKey = driverKey;
+        _sessionId = $"{DateTime.Now:yyyyMMdd_HHmmss}_{SafeFilePart(s.Driver)}";
+        _samples = 0;
+        _firstLap = s.Lap;
+        _lastLap = s.Lap;
+    }
+
+    private static string GetDriverKey(TelemetrySnapshot s)
+    {
+        if (s.DriverSteamId != 0)
+            return $"steam:{s.DriverSteamId}";
+        return "name:" + (s.Driver ?? string.Empty).Trim().ToUpperInvariant();
+    }
+
+    private static string SafeFilePart(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return "driver";
+
+        var invalid = Path.GetInvalidFileNameChars();
+        var sb = new StringBuilder(value.Length);
+        foreach (var c in value.Trim())
+            sb.Append(invalid.Contains(c) ? '_' : c);
+        return sb.ToString().Replace(' ', '_');
+    }
+
+    private static string GetDisplayVersion()
+    {
+        var version = Assembly.GetExecutingAssembly().GetName().Version;
+        if (version is null) return "—";
+        return $"{version.Major}.{version.Minor}.{version.Build}";
     }
 
     private static string BlankIfEmpty(string value) => string.IsNullOrWhiteSpace(value) ? "—" : value;
@@ -50,11 +138,26 @@ public partial class MainWindow : Window
     private void SetConnected(bool connected)
     {
         StatusDot.Fill = new SolidColorBrush((Color)ColorConverter.ConvertFromString(connected ? "#2DD67B" : "#65757D"));
-        if (!connected) { StatusText.Text = "IN ATTESA"; ConnectionText.Text = "LMU non rilevato"; Subtitle.Text = "In attesa di Le Mans Ultimate."; CaptureTitle.Text = "Non attiva"; CaptureDetail.Text = "Si attiverà automaticamente durante lo stint."; DriverText.Text = "—"; if (!IsVisible) Show(); }
-        else if (!_recording) { StatusText.Text = "LMU COLLEGATO"; ConnectionText.Text = "Telemetria LMU disponibile"; Subtitle.Text = "Connessione stabilita. In attesa dello stint."; }
+        if (!connected)
+        {
+            StatusText.Text = "IN ATTESA";
+            ConnectionText.Text = "LMU non rilevato";
+            Subtitle.Text = "In attesa di Le Mans Ultimate.";
+            CaptureTitle.Text = "Non attiva";
+            CaptureDetail.Text = "Si attiverà automaticamente durante lo stint.";
+            DriverText.Text = "—";
+            if (!IsVisible) Show();
+        }
+        else if (!_recording)
+        {
+            StatusText.Text = "LMU COLLEGATO";
+            ConnectionText.Text = "Telemetria LMU disponibile";
+            Subtitle.Text = "Connessione stabilita. In attesa dello stint.";
+        }
     }
 
-    private void OpenSessions_Click(object sender, RoutedEventArgs e) => Process.Start(new ProcessStartInfo("explorer.exe", _store.Root) { UseShellExecute = true });
+    private void OpenSessions_Click(object sender, RoutedEventArgs e) =>
+        Process.Start(new ProcessStartInfo("explorer.exe", _store.Root) { UseShellExecute = true });
 
     private async void CheckUpdates_Click(object sender, RoutedEventArgs e)
     {
@@ -71,8 +174,13 @@ public partial class MainWindow : Window
                 UpdateStatusText.Text = "Aggiornamento scaricato. Riavvio…";
                 break;
             default:
-                UpdateStatusText.Text = "Impossibile verificare gli aggiornamenti";
-                MessageBox.Show("Non è stato possibile controllare gli aggiornamenti. Verifica la connessione Internet e riprova.", "RaceMind", MessageBoxButton.OK, MessageBoxImage.Warning);
+                UpdateStatusText.Text = "Errore aggiornamento · dettagli registrati";
+                var detail = string.IsNullOrWhiteSpace(_updates.LastError) ? "Errore non specificato." : _updates.LastError;
+                MessageBox.Show(
+                    $"RaceMind non è riuscito a controllare gli aggiornamenti.\n\nDettaglio: {detail}\n\nLog: {_updates.LogPath}",
+                    "RaceMind · Aggiornamenti",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
                 break;
         }
         CheckUpdatesButton.IsEnabled = true;
