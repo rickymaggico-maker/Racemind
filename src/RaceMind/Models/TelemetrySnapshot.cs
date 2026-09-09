@@ -2,6 +2,7 @@ namespace RaceMind.Models;
 
 public sealed record TelemetrySnapshot(
     DateTime Timestamp,
+    string Driver,
     string Vehicle,
     string Track,
     int Lap,
